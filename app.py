@@ -225,4 +225,4 @@ st.markdown("---")
 with open("index.html", "r", encoding="utf-8") as f:
     html_code = f.read()
 
-components.html(html_code, height=2200, scollable=True)
+components.html(html_code, height=2200, scrolling=True)
