@@ -186,7 +186,7 @@ def generate_excel_bytes(record):
 
 # ── 6. 整合頂級設計師版網頁前端 ──
 # 讀取或內嵌優化後的 HTML，並將後端動作映射到 Streamlit 組件上
-st.markdown("<h2 style='color:#00ffcc; font-family:Bebas Neue;'>SECTIONS CONTROLLER</h2>", unsafe_allow_safe_html=True)
+st.markdown("<h2 style='color:#00ffcc; font-family:Bebas Neue;'>SECTIONS CONTROLLER</h2>", unsafe_allow_html=True)
 
 # 提供雲端真實上傳、解析與下載按鈕控制區
 col1, col2 = st.columns([1, 1])
