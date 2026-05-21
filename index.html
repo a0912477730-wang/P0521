@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>長田車輛燃料費管理系統</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: "Microsoft JhengHei", "蘋方-繁", sans-serif; background: #f5f6fa; color: #2c3e50; font-size: 14px; }
+.topbar { background: #1a2744; color: #fff; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
+.topbar h1 { font-size: 17px; font-weight: 500; letter-spacing: 1px; }
+.topbar .version { font-size: 12px; opacity: 0.5; }
+.tabs { display: flex; background: #fff; border-bottom: 1px solid #e0e0e0; padding: 0 24px; }
+.tab { padding: 12px 20px; cursor: pointer; font-size: 13px; color: #666; border-bottom: 2px solid transparent; transition: all .2s; }
+.tab.active { color: #1a2744; border-bottom-color: #1a2744; font-weight: 500; }
+.tab:hover:not(.active) { color: #333; background: #f9f9f9; }
+.page { display: none; padding: 24px; }
+.page.active { display: block; }
+.card { background: #fff; border-radius: 10px; border: 1px solid #e8e8e8; padding: 20px 24px; margin-bottom: 16px; }
+.card-title { font-size: 14px; font-weight: 600; color: #1a2744; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; gap: 8px; }
+.month-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
+.month-row select, .month-row input[type=number] { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; background: #fff; }
+.vtable-wrap { overflow-x: auto; }
+table.vtable { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 900px; }
+table.vtable th { background: #1a2744; color: #fff; padding: 9px 10px; text-align: center; font-weight: 500; white-space: nowrap; }
+table.vtable td { padding: 6px 8px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+table.vtable tr:hover td { background: #f8faff; }
+table.vtable td:first-child { font-weight: 600; color: #1a2744; white-space: nowrap; }
+table.vtable td:nth-child(2) { color: #666; font-size: 12px; }
+table.vtable input[type=number] { width: 90px; padding: 5px 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 13px; text-align: right; }
+table.vtable input[type=number]:focus { outline: none; border-color: #4a7fd4; background: #f0f6ff; }
+.fuel-inputs { display: flex; flex-wrap: wrap; gap: 4px; }
+.fuel-inputs input { width: 72px; }
+.add-fuel-btn { background: none; border: 1px dashed #bbb; border-radius: 4px; color: #999; font-size: 12px; padding: 4px 8px; cursor: pointer; white-space: nowrap; }
+.add-fuel-btn:hover { border-color: #4a7fd4; color: #4a7fd4; }
+textarea.note-input { width: 100%; padding: 5px 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 12px; resize: vertical; min-height: 36px; font-family: inherit; }
+.btn { padding: 10px 22px; border-radius: 7px; font-size: 14px; cursor: pointer; border: none; font-family: inherit; font-weight: 500; transition: all .15s; }
+.btn-primary { background: #1a2744; color: #fff; }
+.btn-primary:hover { background: #253860; }
+.btn-secondary { background: #fff; color: #1a2744; border: 1px solid #1a2744; }
+.btn-secondary:hover { background: #f0f4ff; }
+.btn-success { background: #27ae60; color: #fff; }
+.btn-success:hover { background: #219a52; }
+.btn-orange { background: #e67e22; color: #fff; }
+.btn-orange:hover { background: #ca6f1e; }
+.btn-row { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; align-items: center; }
+#toast { position: fixed; bottom: 24px; right: 24px; background: #2c3e50; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 13px; display: none; z-index: 1001; max-width: 320px; }
+#toast.success { background: #27ae60; }
+#toast.error   { background: #c0392b; }
+.setting-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.setting-row label { width: 160px; color: #555; font-size: 13px; flex-shrink: 0; }
+.setting-row input[type=text] { flex: 1; min-width: 200px; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
+.setting-hint { font-size: 12px; color: #999; margin-top: 4px; }
+.km-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.km-table th { background: #f5f6fa; padding: 8px 12px; text-align: left; font-weight: 500; color: #555; border-bottom: 1px solid #e0e0e0; }
+.km-table td { padding: 7px 12px; border-bottom: 1px solid #f5f5f5; }
+.km-table input { width: 120px; padding: 5px 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 13px; text-align: right; }
+.hist-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-radius: 7px; background: #f8f9fb; margin-bottom: 8px; }
+.hist-name { font-size: 13px; font-weight: 500; color: #1a2744; }
+.badge-mo { background: #e8edf8; color: #1a2744; font-size: 11px; padding: 2px 8px; border-radius: 20px; margin-left: 8px; }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.stat-card { background: #f5f7fb; border-radius: 8px; padding: 14px 16px; }
+.stat-label { font-size: 12px; color: #888; margin-bottom: 4px; }
+.stat-val { font-size: 20px; font-weight: 600; color: #1a2744; }
+.stat-unit { font-size: 12px; color: #aaa; margin-left: 4px; }
+#loading { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 1000; align-items: center; justify-content: center; }
+#loading.show { display: flex; }
+.loading-box { background: #fff; border-radius: 12px; padding: 28px 36px; text-align: center; }
+.loading-box p { margin-top: 10px; color: #555; font-size: 14px; }
+.spinner { width: 36px; height: 36px; border: 3px solid #e0e0e0; border-top-color: #1a2744; border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 罰單查詢助手 */
+#violation-modal { display:none !important; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:2000; align-items:center; justify-content:center; }
+#violation-modal.show { display:flex !important; }
+.vmodal-box { background:#fff; border-radius:14px; width:780px; max-width:96vw; max-height:92vh; overflow:hidden; display:flex; flex-direction:column; }
+.vmodal-header { background:#1a2744; color:#fff; padding:16px 22px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.vmodal-header h2 { font-size:15px; font-weight:500; }
+.vmodal-close { background:none; border:none; color:#fff; font-size:22px; cursor:pointer; line-height:1; opacity:.7; }
+.vmodal-close:hover { opacity:1; }
+.vmodal-body { padding:20px 22px; overflow-y:auto; flex:1; }
+.vmodal-footer { padding:14px 22px; border-top:1px solid #f0f0f0; display:flex; gap:10px; align-items:center; flex-shrink:0; }
+.progress-bar-wrap { background:#e8e8e8; border-radius:20px; height:7px; margin-bottom:6px; }
+.progress-bar { background:#1a2744; border-radius:20px; height:7px; transition:width .4s; }
+.progress-label { font-size:12px; color:#888; margin-bottom:16px; }
+.vcar-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(155px,1fr)); gap:8px; margin-bottom:16px; }
+.vcar-card { border:1.5px solid #e0e0e0; border-radius:8px; padding:10px 12px; cursor:pointer; transition:all .15s; }
+.vcar-card:hover { border-color:#aaa; }
+.vcar-card.is-active { border-color:#1a2744; background:#eef2fa; }
+.vcar-card.done-ok  { border-color:#27ae60; background:#f0faf4; }
+.vcar-card.done-vio { border-color:#e74c3c; background:#fdf2f2; }
+.vcar-plate { font-size:13px; font-weight:700; color:#1a2744; }
+.vcar-type  { font-size:11px; color:#888; margin-top:1px; }
+.vcar-status { font-size:11px; margin-top:5px; font-weight:500; }
+.vcar-status.ok  { color:#27ae60; }
+.vcar-status.vio { color:#e74c3c; }
+.vcar-status.pending { color:#bbb; }
+.qpanel { background:#f8f9fb; border-radius:10px; padding:18px 20px; }
+.qpanel-title { font-size:15px; font-weight:700; color:#e67e22; margin-bottom:12px; }
+.hint-box { background:#fff8e1; border-left:3px solid #ffc107; border-radius:0 7px 7px 0; padding:10px 14px; font-size:12px; color:#795548; margin-bottom:14px; line-height:1.7; }
+.qrow { display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+.qrow label { width:80px; font-size:13px; color:#555; flex-shrink:0; }
+.qrow input[type=text] { flex:1; min-width:140px; padding:7px 11px; border:1px solid #ddd; border-radius:6px; font-size:13px; }
+.open-site-btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:#e67e22; color:#fff; border:none; border-radius:7px; font-size:13px; font-weight:500; cursor:pointer; text-decoration:none; }
+.open-site-btn:hover { background:#ca6f1e; }
+.result-label { font-size:13px; font-weight:500; color:#333; margin-bottom:8px; display:block; }
+.result-btns { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+.rbtn { padding:9px 22px; border-radius:7px; font-size:13px; cursor:pointer; border:1.5px solid #ddd; background:#fff; font-family:inherit; font-weight:500; transition:all .15s; }
+.rbtn:hover { border-color:#888; }
+.rbtn.sel-ok  { border-color:#27ae60; background:#f0faf4; color:#1e8449; }
+.rbtn.sel-vio { border-color:#e74c3c; background:#fdf2f2; color:#c0392b; }
+.vio-detail { display:none; margin-top:8px; }
+.vio-detail.show { display:block; }
+.vio-detail input { width:100%; padding:8px 11px; border:1px solid #e74c3c; border-radius:6px; font-size:13px; font-family:inherit; }
+.vio-detail input:focus { outline:none; }
+.footer-hint { font-size:12px; color:#aaa; flex:1; }
+.parse-ok  { color:var(--color-text-success); }
+.parse-err { color:var(--color-text-danger); }
+.parse-row { display:flex; align-items:center; gap:6px; margin-bottom:3px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>🚚 長田車輛燃料費管理系統</h1>
+  <span class="version">v2.1</span>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('entry')">月份資料輸入</div>
+  <div class="tab" onclick="switchTab('history')">歷史報表</div>
+  <div class="tab" onclick="switchTab('settings')">設定</div>
+</div>
+
+<div id="page-entry" class="page active">
+  <div class="card">
+    <div class="card-title"><span>📅</span> 選擇月份</div>
+    <div class="month-row">
+      <span>西元年</span>
+      <input type="number" id="sel-year" style="width:90px" min="2020" max="2099" onchange="loadMonthData()">
+      <span>月份</span>
+      <select id="sel-month" onchange="loadMonthData()">
+        <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+        <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+        <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+        <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+      </select>
+      <button class="btn btn-secondary" onclick="clearForm()">清除表單</button>
+      <button class="btn btn-primary" style="padding:8px 16px;font-size:13px;" onclick="loadMonthData()">📂 載入此月資料</button>
+      <span id="load-status" style="font-size:12px;color:#27ae60;"></span>
+    </div>
+  </div>
+
+  <div class="card" id="upload-card">
+    <div class="card-title"><span>📤</span> 匯入會計系統資料</div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">
+      <div>
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:6px;">燃料費明細分類帳 .xlsx</div>
+        <input type="file" id="fuel-file" accept=".xlsx" onchange="onFileSelected()" style="font-size:13px;">
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:6px;">修繕費明細分類帳 .xlsx</div>
+        <input type="file" id="repair-file" accept=".xlsx" onchange="onFileSelected()" style="font-size:13px;">
+      </div>
+      <button class="btn btn-primary" id="parse-btn" onclick="parseUploads()" disabled style="padding:8px 18px;font-size:13px;">⬆ 解析並填入</button>
+    </div>
+    <div id="parse-result" style="margin-top:4px;font-size:13px;display:none;"></div>
+    <div id="save-history-row" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f0;display:none;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span style="font-size:13px;color:#555;">解析完成，是否直接存入歷史報表？</span>
+      <button class="btn btn-success" onclick="saveToHistory()" style="padding:8px 18px;font-size:13px;">📥 直接存入歷史報表</button>
+      <span id="save-history-status" style="font-size:12px;color:#27ae60;"></span>
+    </div>
+    <div style="margin-top:8px;font-size:12px;color:var(--color-text-secondary);">
+      解析後可選擇：①填入下方表格後手動調整再產出 Excel　②直接存入歷史報表（起迄里程自動帶入）
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span>⛽</span> 各車輛資料</div>
+    <div class="vtable-wrap">
+      <table class="vtable">
+        <thead>
+          <tr>
+            <th>車牌</th><th>車型</th>
+            <th>起里程 (km)</th><th>迄里程 (km)</th>
+            <th>加油明細 (每次金額 NT$)</th>
+            <th>維修費 (NT$)</th>
+            <th>違規紀錄</th><th>受損紀錄</th>
+          </tr>
+        </thead>
+        <tbody id="vehicle-tbody"></tbody>
+      </table>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-orange" onclick="openViolationWizard()">🚨 罰單查詢助手</button>
+      <span style="font-size:12px;color:#999;">逐台引導至監理站查詢，結果自動填回表格</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span>📊</span> 本月預覽</div>
+    <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;">當月統計</div>
+    <div class="stat-grid" style="margin-bottom:20px;">
+      <div class="stat-card"><div class="stat-label">當月總油資</div><div class="stat-val" id="s-fuel">—</div><span class="stat-unit">NT$</span></div>
+      <div class="stat-card"><div class="stat-label">當月總維修費</div><div class="stat-val" id="s-repair">—</div><span class="stat-unit">NT$</span></div>
+      <div class="stat-card"><div class="stat-label">總行駛里程</div><div class="stat-val" id="s-dist">—</div><span class="stat-unit">km</span></div>
+      <div class="stat-card"><div class="stat-label">平均油耗</div><div class="stat-val" id="s-avg">—</div><span class="stat-unit">元/km</span></div>
+    </div>
+    <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;">當年度累計（含本月）</div>
+    <div class="stat-grid" style="margin-bottom:4px;">
+      <div class="stat-card" style="border-left:3px solid var(--color-border-info);">
+        <div class="stat-label">年度累計油資</div>
+        <div class="stat-val" id="s-year-fuel">—</div><span class="stat-unit">NT$</span>
+      </div>
+      <div class="stat-card" style="border-left:3px solid var(--color-border-warning);">
+        <div class="stat-label">年度累計維修費</div>
+        <div class="stat-val" id="s-year-repair">—</div><span class="stat-unit">NT$</span>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">已統計月份</div>
+        <div class="stat-val" id="s-year-months">—</div><span class="stat-unit">個月</span>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">年度月均油資</div>
+        <div class="stat-val" id="s-year-avg-fuel">—</div><span class="stat-unit">NT$/月</span>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="generate()">⬇ 產出當月 Excel 報表</button>
+      <button class="btn btn-secondary" onclick="generateYearly()" style="border-color:#1a2744;">📊 產出年度彙整報表</button>
+      <span id="last-output" style="font-size:12px;color:#999;"></span>
+    </div>
+  </div>
+</div>
+
+<div id="page-history" class="page">
+  <div class="card">
+    <div class="card-title"><span>📁</span> 歷史報表下載</div>
+    <div id="hist-list"><p style="color:#aaa;font-size:13px;">尚無歷史紀錄</p></div>
+  </div>
+</div>
+
+<div id="page-settings" class="page">
+  <div class="card">
+    <div class="card-title"><span>🚗</span> 各車輛年度起始里程（每年1月初設定一次）</div>
+    <table class="km-table">
+      <thead><tr><th>車牌</th><th>車型</th><th>年度起始里程 (km)</th><th>上月維修累積 (NT$)</th></tr></thead>
+      <tbody id="km-tbody"></tbody>
+    </table>
+    <p class="setting-hint" style="margin-top:8px;">每年1月初或首次使用時填入，用於計算年累積里程與年平均油耗。</p>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-success" onclick="saveSettings()">儲存設定</button>
+  </div>
+</div>
+<div id="violation-modal">
+  <div class="vmodal-box">
+    <div class="vmodal-header">
+      <h2>🚨 罰單查詢助手 — 逐台引導查詢</h2>
+      <button class="vmodal-close" onclick="closeViolationWizard()">✕</button>
+    </div>
+    <div class="vmodal-body">
+      <div class="progress-bar-wrap"><div class="progress-bar" id="vio-progress" style="width:0%"></div></div>
+      <div class="progress-label" id="vio-progress-label">0 / 11 台完成</div>
+
+      <div class="vcar-grid" id="vcar-grid"></div>
+
+      <div class="qpanel" id="qpanel" style="display:none">
+        <div class="qpanel-title" id="qpanel-plate"></div>
+
+        <div class="hint-box">
+          <b>操作步驟：</b><br>
+          1. 點下方橘色按鈕，瀏覽器新分頁開啟監理站查詢頁面<br>
+          2. 在監理站輸入車牌號碼 + 車主身分證號，點查詢<br>
+          3. 查完後回到這裡，選擇結果，有罰單請填寫說明<br>
+          4. 按「確認，下一台」繼續
+        </div>
+
+        <div class="qrow">
+          <label>目前車牌</label>
+          <input type="text" id="q-plate-display" readonly style="background:#f5f5f5;font-weight:700;width:130px;color:#1a2744;">
+          <button class="open-site-btn" onclick="openMVDIS()">🔗 開啟監理站查詢</button>
+        </div>
+
+        <span class="result-label">查詢結果：</span>
+        <div class="result-btns">
+          <button class="rbtn" id="rbtn-ok"  onclick="selectResult('ok')">✅ 無罰單</button>
+          <button class="rbtn" id="rbtn-vio" onclick="selectResult('vio')">❌ 有罰單</button>
+        </div>
+        <div class="vio-detail" id="vio-detail">
+          <label style="font-size:13px;color:#c0392b;display:block;margin-bottom:4px;">罰單說明（違規日期、金額、事由）：</label>
+          <input type="text" id="vio-desc" placeholder="例：5/3 未依規定停車 NT$600　或　5/15 闖紅燈 NT$1,800">
+        </div>
+      </div>
+    </div>
+    <div class="vmodal-footer">
+      <span class="footer-hint" id="vmodal-hint"></span>
+      <button class="btn btn-secondary" id="vmodal-prev-btn" onclick="wizardPrev()" style="display:none">← 上一台</button>
+      <button class="btn btn-primary"   id="vmodal-next-btn" onclick="wizardNext()" style="display:none">確認，下一台 →</button>
+      <button class="btn btn-success"   id="vmodal-done-btn" onclick="wizardFinish()" style="display:none">✅ 全部完成，寫入報表</button>
+    </div>
+  </div>
+</div>
+
+<div id="loading"><div class="loading-box"><div class="spinner"></div><p id="loading-msg">產出中...</p></div></div>
+<div id="toast"></div>
+
+<script>
+const VEHICLES = {{ vehicles | tojson }};
+let appData = {};
+let wizardResults = {};
+let wizardIdx = 0;
+
+function onFileSelected() {
+  const f = document.getElementById("fuel-file").files.length;
+  const r = document.getElementById("repair-file").files.length;
+  document.getElementById("parse-btn").disabled = !(f || r);
+}
+
+let lastParsedData = null;  // 保存最後一次解析結果供 saveToHistory 使用
+
+async function parseUploads() {
+  const btn = document.getElementById("parse-btn");
+  const resEl = document.getElementById("parse-result");
+  btn.disabled = true; btn.textContent = "解析中...";
+  resEl.style.display = "none";
+  document.getElementById("save-history-row").style.display = "none";
+  lastParsedData = null;
+
+  const fd = new FormData();
+  const fuelFile   = document.getElementById("fuel-file").files[0];
+  const repairFile = document.getElementById("repair-file").files[0];
+  if (fuelFile)   fd.append("fuel_file",   fuelFile);
+  if (repairFile) fd.append("repair_file", repairFile);
+
+  try {
+    const res  = await fetch("/api/parse_upload", { method: "POST", body: fd });
+    const data = await res.json();
+    lastParsedData = data;  // 儲存解析結果
+
+    let html = "";
+    let filledCount = 0;
+
+    // Fill fuel amounts into form
+    if (data.fuel_breakdown) {
+      VEHICLES.forEach(v => {
+        const amounts = data.fuel_breakdown[v.plate] || [];
+        if (!amounts.length) return;
+        const fc = document.getElementById("fuels-" + v.plate);
+        if (!fc) return;
+        fc.innerHTML = "";
+        amounts.forEach((amt, i) => {
+          const inp = document.createElement("input");
+          inp.type = "number"; inp.className = "fuel-inp"; inp.min = "0";
+          inp.placeholder = "第" + (i+1) + "次"; inp.value = amt;
+          inp.addEventListener("input", updateStats);
+          fc.appendChild(inp);
+        });
+        filledCount++;
+      });
+    }
+
+    // Auto-fill start/end km from fuel ledger desc
+    if (data.km_range) {
+      let kmFilled = 0;
+      VEHICLES.forEach(v => {
+        const km = data.km_range[v.plate];
+        if (!km) return;
+        const skEl = document.getElementById("sk-" + v.plate);
+        const ekEl = document.getElementById("ek-" + v.plate);
+        if (skEl && km.start_km) { skEl.value = km.start_km; kmFilled++; }
+        if (ekEl && km.end_km)   { ekEl.value = km.end_km; }
+      });
+      if (kmFilled > 0) {
+        html += `<div class="parse-row parse-ok"><i class="ti ti-check" aria-hidden="true"></i>
+          自動填入 ${kmFilled} 台車起迄里程（從摘要欄辨識）</div>`;
+      }
+    }
+
+    // Fill repair amounts
+    if (data.repair) {
+      VEHICLES.forEach(v => {
+        const amt = data.repair[v.plate] || 0;
+        const el = document.getElementById("repair-" + v.plate);
+        if (el) el.value = amt;
+      });
+    }
+
+    // Build result summary
+    const fuelTotal   = Object.values(data.fuel||{}).reduce((a,b)=>a+b,0);
+    const repairTotal = Object.values(data.repair||{}).reduce((a,b)=>a+b,0);
+    const carCount    = Object.keys(data.fuel||{}).filter(p=>data.fuel[p]>0).length;
+
+    html += `<div class="parse-row parse-ok"><i class="ti ti-check" aria-hidden="true"></i>
+      成功解析 ${carCount} 台車輛油資，合計 NT$ ${fuelTotal.toLocaleString()}，已填入下方表格</div>`;
+    if (repairTotal > 0) {
+      const repCars = Object.keys(data.repair).filter(p => data.repair[p] > 0);
+      html += `<div class="parse-row parse-ok"><i class="ti ti-check" aria-hidden="true"></i>
+        修繕費：${repCars.join("、")}，合計 NT$ ${repairTotal.toLocaleString()}</div>`;
+    }
+    if (data.errors && data.errors.length) {
+      data.errors.forEach(e => {
+        html += `<div class="parse-row parse-err"><i class="ti ti-alert-triangle" aria-hidden="true"></i>${e}</div>`;
+      });
+    }
+
+    resEl.innerHTML = html;
+    resEl.style.display = "block";
+    updateStats();
+    showToast("✅ 解析完成，油資與維修費已填入表格", "success");
+    // 顯示「直接存入歷史」按鈕
+    if (!data.errors || !data.errors.length) {
+      document.getElementById("save-history-row").style.display = "flex";
+      document.getElementById("save-history-status").textContent = "";
+    }
+  } catch(e) {
+    resEl.innerHTML = `<span class="parse-err">解析失敗：${e.message}</span>`;
+    resEl.style.display = "block";
+  }
+  btn.disabled = false; btn.textContent = "⬆ 解析並填入";
+}
+
+async function generateYearly() {
+  const year = parseInt(document.getElementById("sel-year").value);
+  const tw   = year - 1911;
+  document.getElementById("loading-msg").textContent = tw + "年度彙整報表產出中，請稍候...";
+  document.getElementById("loading").classList.add("show");
+  try {
+    const res  = await fetch("/api/generate_yearly", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({year})
+    });
+    const data = await res.json();
+    document.getElementById("loading").classList.remove("show");
+    if (data.ok) {
+      showToast("✅ " + tw + "年度彙整報表產出成功！", "success");
+      document.getElementById("last-output").textContent = "最近產出：" + data.filename;
+      setTimeout(() => { window.location.href = "/api/download/" + data.filename; }, 800);
+    } else {
+      showToast(data.msg || "年度報表產出失敗", "error");
+    }
+  } catch(e) {
+    document.getElementById("loading").classList.remove("show");
+    showToast("發生錯誤：" + e.message, "error");
+  }
+}
+
+async function saveToHistory() {
+  if (!lastParsedData) { showToast("請先解析檔案", "error"); return; }
+  const year  = parseInt(document.getElementById("sel-year").value);
+  const month = parseInt(document.getElementById("sel-month").value);
+  const tw = year - 1911;
+
+  const payload = {
+    year, month,
+    fuel_breakdown: lastParsedData.fuel_breakdown || {},
+    repair:         lastParsedData.repair || {},
+    km_range:       lastParsedData.km_range || {},
+  };
+
+  try {
+    const res  = await fetch("/api/save_to_history", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById("save-history-status").textContent = "✅ " + data.msg;
+      showToast("✅ " + data.msg, "success");
+      // 重新載入 appData，確保年度累計數字正確
+      const freshRes = await fetch("/api/data");
+      appData = await freshRes.json();
+      loadHistory();
+      await loadMonthData();
+    } else {
+      showToast("存入失敗", "error");
+    }
+  } catch(e) {
+    showToast("存入失敗：" + e.message, "error");
+  }
+}
+
+async function init() {
+  // 預設顯示四月（有資料的月份）
+  document.getElementById("sel-year").value = 2026;
+  document.getElementById("sel-month").value = 4;
+  const res = await fetch("/api/data");
+  appData = await res.json();
+  buildVehicleTable();
+  buildKmTable();
+  loadHistory();
+  setInterval(updateStats, 600);
+  // 自動載入四月資料
+  await loadMonthData();
+}
+
+async function loadMonthData() {
+  const year = document.getElementById("sel-year").value;
+  const month = String(document.getElementById("sel-month").value).padStart(2,"0");
+  const key = year + "-" + month;
+  const st = document.getElementById("load-status");
+
+  // 先清空所有欄位（避免舊月份資料殘留）
+  VEHICLES.forEach(v => {
+    const skEl  = document.getElementById("sk-"+v.plate);
+    const ekEl  = document.getElementById("ek-"+v.plate);
+    const repEl = document.getElementById("repair-"+v.plate);
+    const vioEl = document.getElementById("vio-"+v.plate);
+    const dmgEl = document.getElementById("dmg-"+v.plate);
+    const fc    = document.getElementById("fuels-"+v.plate);
+    if (skEl)  skEl.value  = "";
+    if (ekEl)  ekEl.value  = "";
+    if (repEl) repEl.value = 0;
+    if (vioEl) vioEl.value = "";
+    if (dmgEl) dmgEl.value = "";
+    if (fc) {
+      fc.innerHTML = "";
+      const inp = document.createElement("input");
+      inp.type="number"; inp.className="fuel-inp"; inp.min="0"; inp.placeholder="第1次";
+      inp.addEventListener("input", updateStats);
+      fc.appendChild(inp);
+    }
+  });
+
+  const res = await fetch("/api/month_data/" + key);
+  const rec = await res.json();
+
+  if (!rec) {
+    st.textContent = "此月無資料，可輸入新資料";
+    st.style.color = "#aaa";
+    updateStats();
+    return;
+  }
+
+  // 填入該月資料
+  const vmap = rec.vehicles || {};
+  VEHICLES.forEach(v => {
+    const vd    = vmap[v.plate] || {};
+    const skEl  = document.getElementById("sk-"+v.plate);
+    const ekEl  = document.getElementById("ek-"+v.plate);
+    const repEl = document.getElementById("repair-"+v.plate);
+    const vioEl = document.getElementById("vio-"+v.plate);
+    const dmgEl = document.getElementById("dmg-"+v.plate);
+    const fc    = document.getElementById("fuels-"+v.plate);
+
+    if (skEl)  skEl.value  = vd.start_km  ?? "";
+    if (ekEl)  ekEl.value  = vd.end_km    ?? "";
+    if (repEl) repEl.value = vd.repair    ?? 0;
+    if (vioEl) vioEl.value = vd.violations || "";
+    if (dmgEl) dmgEl.value = vd.damage    || "";
+
+    if (fc && vd.fuels && vd.fuels.length > 0) {
+      fc.innerHTML = "";
+      vd.fuels.forEach((f, i) => {
+        const inp = document.createElement("input");
+        inp.type="number"; inp.className="fuel-inp"; inp.min="0";
+        inp.placeholder="第"+(i+1)+"次"; inp.value = f;
+        inp.addEventListener("input", updateStats);
+        fc.appendChild(inp);
+      });
+    }
+  });
+
+  updateStats();
+  const tw = parseInt(year) - 1911;
+  st.textContent = "✅ 已載入 " + tw + "年" + parseInt(month) + "月資料";
+  st.style.color = "#27ae60";
+}
+
+function buildVehicleTable() {
+  const tbody = document.getElementById("vehicle-tbody");
+  tbody.innerHTML = "";
+  VEHICLES.forEach(v => {
+    const tr = document.createElement("tr");
+    tr.id = "vrow-" + v.plate;
+    tr.innerHTML = `
+      <td>${v.plate}</td><td>${v.type}</td>
+      <td><input type="number" id="sk-${v.plate}" placeholder="${(appData.prev_km||{})[v.plate]||0}" min="0" oninput="updateStats()"></td>
+      <td><input type="number" id="ek-${v.plate}" min="0" oninput="updateStats()"></td>
+      <td>
+        <div class="fuel-inputs" id="fuels-${v.plate}">
+          <input type="number" class="fuel-inp" min="0" placeholder="第1次">
+        </div>
+        <button class="add-fuel-btn" onclick="addFuel('${v.plate}')">+ 加次數</button>
+      </td>
+      <td><input type="number" id="repair-${v.plate}" min="0" value="0" oninput="updateStats()"></td>
+      <td><textarea class="note-input" id="vio-${v.plate}" rows="1" placeholder="無"></textarea></td>
+      <td><textarea class="note-input" id="dmg-${v.plate}" rows="1" placeholder="無"></textarea></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function buildKmTable() {
+  const tbody = document.getElementById("km-tbody");
+  tbody.innerHTML = "";
+  VEHICLES.forEach(v => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${v.plate}</td><td>${v.type}</td>
+      <td><input type="number" id="cfg-km-${v.plate}" value="${(appData.prev_km||{})[v.plate]||0}" min="0"></td>
+      <td><input type="number" id="cfg-ma-${v.plate}" value="${(appData.prev_maint_accum||{})[v.plate]||0}" min="0"></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function addFuel(plate) {
+  const c = document.getElementById("fuels-" + plate);
+  const n = c.querySelectorAll("input").length + 1;
+  const inp = document.createElement("input");
+  inp.type = "number"; inp.className = "fuel-inp"; inp.min = "0"; inp.placeholder = "第" + n + "次";
+  inp.addEventListener("input", updateStats);
+  c.appendChild(inp);
+}
+
+function getFuels(plate) {
+  return Array.from(document.querySelectorAll("#fuels-" + plate + " input"))
+    .map(i => i.value ? parseInt(i.value) : null).filter(v => v !== null);
+}
+
+function updateStats() {
+  // 當月統計
+  let d=0, f=0, r=0;
+  VEHICLES.forEach(v => {
+    const sk = parseInt(document.getElementById("sk-"+v.plate)?.value||0);
+    const ek = parseInt(document.getElementById("ek-"+v.plate)?.value||0);
+    const rep = parseInt(document.getElementById("repair-"+v.plate)?.value||0);
+    f += getFuels(v.plate).reduce((a,b)=>a+b,0);
+    d += Math.max(0, ek-sk); r += rep;
+  });
+  document.getElementById("s-dist").textContent   = d.toLocaleString();
+  document.getElementById("s-fuel").textContent   = f.toLocaleString();
+  document.getElementById("s-avg").textContent    = d>0 ? (f/d).toFixed(3) : "—";
+  document.getElementById("s-repair").textContent = r.toLocaleString();
+
+  // 年度累計：從 appData.months 撈同年所有月份 + 本月當前輸入
+  const selYear = parseInt(document.getElementById("sel-year").value);
+  const selMonth = parseInt(document.getElementById("sel-month").value);
+  let yearFuel = 0, yearRepair = 0, yearMonths = 0;
+
+  // 歷史已儲存月份
+  const months = (appData.months)||{};
+  Object.entries(months).forEach(([key, rec]) => {
+    const [y, m] = key.split("-").map(Number);
+    if (y !== selYear) return;
+    if (m === selMonth) return; // 本月用當前輸入值，不重複加
+    const vv = rec.vehicles || {};
+    Object.values(vv).forEach(vd => {
+      yearFuel   += (vd.fuels||[]).reduce((a,b)=>a+b,0);
+      yearRepair += (vd.repair||0);
+    });
+    yearMonths++;
+  });
+
+  // 加上本月當前輸入
+  yearFuel   += f;
+  yearRepair += r;
+  yearMonths++;
+
+  document.getElementById("s-year-fuel").textContent     = yearFuel.toLocaleString();
+  document.getElementById("s-year-repair").textContent   = yearRepair.toLocaleString();
+  document.getElementById("s-year-months").textContent   = yearMonths;
+  document.getElementById("s-year-avg-fuel").textContent = yearMonths>0 ? Math.round(yearFuel/yearMonths).toLocaleString() : "—";
+}
+
+function clearForm() { buildVehicleTable(); updateStats(); }
+
+/* ── 罰單查詢助手 ── */
+function openViolationWizard() {
+  try {
+    wizardResults = {};
+    VEHICLES.forEach(v => { wizardResults[v.plate] = {status:"pending", desc:""}; });
+    wizardIdx = 0;
+    const modal = document.getElementById("violation-modal");
+    if (!modal) { alert("找不到彈窗元素，請重新整理頁面（F5）"); return; }
+    modal.style.display = "flex";
+    modal.classList.add("show");
+    renderStep(0);
+  } catch(e) {
+    alert("開啟失敗：" + e.message);
+  }
+}
+
+function closeViolationWizard() {
+  const modal = document.getElementById("violation-modal");
+  modal.classList.remove("show");
+  modal.style.display = "none";
+}
+
+function renderStep(idx) {
+  wizardIdx = idx;
+  const v = VEHICLES[idx];
+  const total = VEHICLES.length;
+  const done = Object.values(wizardResults).filter(r => r.status !== "pending").length;
+
+  document.getElementById("vio-progress").style.width = (done/total*100)+"%";
+  document.getElementById("vio-progress-label").textContent = done + " / " + total + " 台完成";
+
+  document.getElementById("qpanel").style.display = "block";
+  document.getElementById("qpanel-plate").textContent = v.plate + "　" + v.type + "　" + v.year;
+  document.getElementById("q-plate-display").value = v.plate;
+
+  const r = wizardResults[v.plate];
+  document.getElementById("rbtn-ok").className  = "rbtn" + (r.status==="ok"  ? " sel-ok"  : "");
+  document.getElementById("rbtn-vio").className = "rbtn" + (r.status==="vio" ? " sel-vio" : "");
+  document.getElementById("vio-detail").className = "vio-detail" + (r.status==="vio" ? " show" : "");
+  document.getElementById("vio-desc").value = r.desc || "";
+
+  document.getElementById("vmodal-prev-btn").style.display = idx > 0 ? "" : "none";
+  document.getElementById("vmodal-next-btn").style.display = idx < total-1 ? "" : "none";
+  document.getElementById("vmodal-done-btn").style.display = idx === total-1 ? "" : "none";
+  document.getElementById("vmodal-hint").textContent = "第 " + (idx+1) + " 台 / 共 " + total + " 台";
+
+  renderVcarGrid();
+}
+
+function renderVcarGrid() {
+  document.getElementById("vcar-grid").innerHTML = VEHICLES.map((v,i) => {
+    const r = wizardResults[v.plate];
+    let cls = "vcar-card", stxt = "待查詢", scls = "pending";
+    if (i === wizardIdx) cls += " is-active";
+    if (r.status === "ok")  { cls = i===wizardIdx?"vcar-card is-active done-ok":"vcar-card done-ok";   stxt="✅ 無罰單"; scls="ok"; }
+    if (r.status === "vio") { cls = i===wizardIdx?"vcar-card is-active done-vio":"vcar-card done-vio"; stxt="❌ 有罰單"; scls="vio"; }
+    return `<div class="${cls}" onclick="jumpTo(${i})">
+      <div class="vcar-plate">${v.plate}</div>
+      <div class="vcar-type">${v.type}</div>
+      <div class="vcar-status ${scls}">${stxt}</div>
+    </div>`;
+  }).join("");
+}
+
+function jumpTo(idx) { saveCurrent(); renderStep(idx); }
+
+function openMVDIS() {
+  window.open("https://www.mvdis.gov.tw/m3-emv-vil/vil/penaltyQueryPay", "_blank");
+}
+
+function selectResult(type) {
+  wizardResults[VEHICLES[wizardIdx].plate].status = type;
+  document.getElementById("rbtn-ok").className  = "rbtn" + (type==="ok"  ? " sel-ok"  : "");
+  document.getElementById("rbtn-vio").className = "rbtn" + (type==="vio" ? " sel-vio" : "");
+  document.getElementById("vio-detail").className = "vio-detail" + (type==="vio" ? " show" : "");
+  if (type==="vio") document.getElementById("vio-desc").focus();
+  renderVcarGrid();
+}
+
+function saveCurrent() {
+  const r = wizardResults[VEHICLES[wizardIdx].plate];
+  if (r.status === "vio") r.desc = document.getElementById("vio-desc").value;
+}
+
+function wizardNext() {
+  saveCurrent();
+  if (wizardResults[VEHICLES[wizardIdx].plate].status === "pending") {
+    showToast("請先選擇「無罰單」或「有罰單」", "error"); return;
+  }
+  renderStep(wizardIdx + 1);
+}
+
+function wizardPrev() { saveCurrent(); renderStep(wizardIdx - 1); }
+
+function wizardFinish() {
+  saveCurrent();
+  if (wizardResults[VEHICLES[wizardIdx].plate].status === "pending") {
+    showToast("請先選擇「無罰單」或「有罰單」", "error"); return;
+  }
+  VEHICLES.forEach(v => {
+    const r = wizardResults[v.plate];
+    const el = document.getElementById("vio-" + v.plate);
+    if (!el) return;
+    if (r.status === "ok")  el.value = "無";
+    if (r.status === "vio") el.value = r.desc || "有罰單";
+  });
+  closeViolationWizard();
+  showToast("✅ 全部 " + VEHICLES.length + " 台罰單資料已寫入表格", "success");
+}
+
+/* ── Generate ── */
+async function generate() {
+  const year = parseInt(document.getElementById("sel-year").value);
+  const month = parseInt(document.getElementById("sel-month").value);
+  if (!year || !month) { showToast("請選擇年份與月份", "error"); return; }
+  const vehicles = VEHICLES.map(v => ({
+    plate: v.plate,
+    start_km:    document.getElementById("sk-"+v.plate)?.value || 0,
+    end_km:      document.getElementById("ek-"+v.plate)?.value || 0,
+    repair_cost: document.getElementById("repair-"+v.plate)?.value || 0,
+    fuels: getFuels(v.plate),
+    violations: document.getElementById("vio-"+v.plate)?.value || "",
+    damage:     document.getElementById("dmg-"+v.plate)?.value || "",
+  }));
+  document.getElementById("loading-msg").textContent = "產出 Excel 中，請稍候...";
+  document.getElementById("loading").classList.add("show");
+  try {
+    const res = await fetch("/api/generate", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({year, month, vehicles})
+    });
+    const data = await res.json();
+    document.getElementById("loading").classList.remove("show");
+    if (data.ok) {
+      showToast("✅ 報表產出成功！正在下載...", "success");
+      document.getElementById("last-output").textContent = "最近產出：" + data.filename;
+      // 重新載入 appData 確保年度累計即時更新
+      const freshRes2 = await fetch("/api/data");
+      appData = await freshRes2.json();
+      setTimeout(() => { window.location.href = "/api/download/" + data.filename; }, 800);
+      loadHistory();
+    } else { showToast("產出失敗，請確認資料", "error"); }
+  } catch(e) {
+    document.getElementById("loading").classList.remove("show");
+    showToast("發生錯誤：" + e.message, "error");
+  }
+}
+
+async function saveSettings() {
+  const prev_km = {}, prev_maint_accum = {};
+  VEHICLES.forEach(v => {
+    prev_km[v.plate] = parseInt(document.getElementById("cfg-km-"+v.plate)?.value||0);
+    prev_maint_accum[v.plate] = parseInt(document.getElementById("cfg-ma-"+v.plate)?.value||0);
+  });
+  await fetch("/api/save_settings", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({prev_km, prev_maint_accum})
+  });
+  appData = {...appData, prev_km, prev_maint_accum};
+  showToast("設定已儲存 ✅", "success");
+}
+
+async function loadHistory() {
+  const res = await fetch("/api/history");
+  const keys = await res.json();
+  const el = document.getElementById("hist-list");
+  if (!keys.length) { el.innerHTML = '<p style="color:#aaa;font-size:13px;">尚無歷史紀錄</p>'; return; }
+  el.innerHTML = keys.sort().reverse().map(k => {
+    const [y,m] = k.split("-");
+    const tw = parseInt(y)-1911;
+    const fname = `${tw}年度${parseInt(m)}月長田車輛燃料費.xlsx`;
+    return `<div class="hist-item">
+      <span class="hist-name">${tw}年度 ${parseInt(m)}月份報表 <span class="badge-mo">${y}-${m}</span></span>
+      <a href="/api/download/${fname}"><button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;">下載 Excel</button></a>
+    </div>`;
+  }).join("");
+}
+
+function switchTab(name) {
+  document.querySelectorAll(".tab").forEach((t,i)=>t.classList.toggle("active",["entry","history","settings"][i]===name));
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.getElementById("page-"+name).classList.add("active");
+  if (name==="history") loadHistory();
+}
+
+function showToast(msg, type="") {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.className = type; t.style.display = "block";
+  setTimeout(() => t.style.display = "none", 3500);
+}
+
+init();
+</script>
+</body>
+</html>
